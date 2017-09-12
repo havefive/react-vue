@@ -3994,6 +3994,10 @@ function observer (componentClass) {
 
 function mixinLifecycleEvents (target) {
   for (var key in lifecycleMixin$1) {
+    if (key === 'shouldComponentUpdate' &&
+      typeof target.shouldComponentUpdate === 'function') {
+      continue
+    }
     patch(target, key);
   }
 }
@@ -4010,6 +4014,12 @@ var lifecycleMixin$1 = {
   },
   componentWillUnmount: function componentWillUnmount () {
     this.$vuewatcher.teardown();
+  },
+  shouldComponentUpdate: function shouldComponentUpdate (nextProps, nextState) {
+    if (this.state !== nextState) {
+      return true
+    }
+    return isObjectShallowModified(this.props, nextProps)
   }
 };
 
@@ -4017,32 +4027,30 @@ function patch (target, funcName) {
   var base = target[funcName];
   var mixinFunc = lifecycleMixin$1[funcName];
   target[funcName] = !base ? function () {
-    mixinFunc.apply(this);
+    return mixinFunc.apply(this, arguments)
   } : function () {
-    mixinFunc.apply(this);
-    base.apply(this, arguments);
+    mixinFunc.apply(this, arguments);
+    return base.apply(this, arguments)
   };
 }
 
-/* Is it really necessary ?
 function isObjectShallowModified (prev, next) {
   if (prev == null || next == null || typeof prev !== 'object' || typeof next !== 'object') {
     return prev !== next
   }
-  const keys = Object.keys(prev)
+  var keys = Object.keys(prev);
   if (keys.length !== Object.keys(next).length) {
     return true
   }
-  let key
-  for (let i = keys.length - 1; i >= 0; i--) {
-    key = keys[i]
+  var key;
+  for (var i = keys.length - 1; i >= 0; i--) {
+    key = keys[i];
     if (next[key] !== prev[key]) {
       return true
     }
   }
   return false
 }
-*/
 
 /**  */
 
